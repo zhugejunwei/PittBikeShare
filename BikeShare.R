@@ -74,4 +74,4 @@ plot(d, main="Pitt Bike Trips by Hour of Day")
 polygon(d, col="blue", border="red")
 
 
-usertype + start when + start where + stop when + stop where = number of bike trip
+## usertype + start when + start where + stop when + stop where = number of bike trip
