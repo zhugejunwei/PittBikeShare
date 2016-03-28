@@ -417,31 +417,31 @@ results <- cbind(my.classifier(training,testing, cl.name='lr',do.cv=T),
                  my.classifier(training,testing, cl.name='knn1',do.cv=T),
                  my.classifier(training,testing, cl.name='knn5',do.cv=T),
                  my.classifier(training,testing, cl.name='knn10',do.cv=T),
-                 my.classifier(training,testing, cl.name='nb',do.cv=T),
+                 my.classifier(training,testing, cl.name='nb',do.cv=T)
                  #my.classifier(training,testing, cl.name='dtree',do.cv=T),
                  #my.classifier(training,testing, cl.name='dtreeprune',do.cv=T),
                  #my.classifier(training,testing, cl.name='svm1',do.cv=T),
                  #my.classifier(training,testing, cl.name='svm2',do.cv=T),
-                 my.classifier(training,testing, cl.name='ada',do.cv=T)
+                 #my.classifier(training,testing, cl.name='ada',do.cv=T)
 )
 
-colnames(results) <- c("Logistic","KNN1","KNN5","KNN10","Naive Bayes","sigmoid SVM","ada")
+colnames(results) <- c("Logistic","KNN1","KNN5","KNN10","Naive Bayes")
 results
 
 # Create bar charts
-colours <- c("red", "orange", "yellow", "green", "blue", "purple","darkgreen")
+colours <- c("red", "orange", "yellow", "green", "blue")
 
 fs <- as.matrix(results[5,])
 auc <- as.matrix(results[6,])
 
 barplot(fs,main="Bar Chart for F-score",
-        names.arg=c("Logistic","KNN1","KNN5","KNN10","Naive Bayes","Decision Tree","Pruned Decision Tree","sigmoid SVM","ada"),
+        names.arg=c("Logistic","KNN1","KNN5","KNN10","Naive Bayes"),
         cex.lab = 1.5, cex.main = 1.4,cex.names=0.6,
         beside=TRUE, col=colours)
 
 
 barplot(auc,main="Bar Chart for AUC",
-        names.arg=c("Logistic","KNN1","KNN5","KNN10","Naive Bayes","Decision Tree","Pruned Decision Tree","sigmoid SVM","ada"),
+        names.arg=c("Logistic","KNN1","KNN5","KNN10","Naive Bayes"),
         cex.lab = 1.5, cex.main = 1.4,cex.names=0.6,
         beside=TRUE, col=colours)
 
