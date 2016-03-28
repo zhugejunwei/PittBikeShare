@@ -21,7 +21,7 @@ rental_total$StartTime <- as.character(rental_total$StartTime)
 rental_total$StopTime <- as.character(rental_total$StopTime)
 rental_total$UserType <- as.character(rental_total$UserType)
 
-# Split StartTime and StopTime into Day, Month, Year, Hour, and Minute 
+# Split StartTime and StopTime into Day, Month, Year, Hour, and Minute
 ##' StartTime
 tag <- as.data.frame(str_split_fixed(rental_total$StartTime, "/", 3))
 rental_total$StartMonth <- tag$V1
@@ -102,4 +102,3 @@ colnames(rentalstart_counts) <- c("FromStationId","UserType","StartMonth","Start
 
 #' Maximum vehicles returned on a given month, day and hour at a particular station
 rentalstart_counts[which.max(rentalstart_counts$Count),]
-
