@@ -142,7 +142,7 @@ rental_total <- merge(rental_total, week.merge2, by.x = "TripId", by.y = "TripId
 #' Edit-End: add a Weekday attribute, delete Day attribute
 #' ----------------------------------------------------------------------
 
-
+ 
 #' Extract Rental Stop Data
 rental_total_stop <- rental_total[, c(5,6,12,13,15,18)]
 head(rental_total_stop)
