@@ -73,7 +73,7 @@ polygon(d.hour, col="blue", border="red")
 
 # density plot based on StartDay
 d.day <- density(rental_total$StartDay)
-plot(d.day, main="Pitt Bike Trips by Day of a Month")
+plot(d.day, main="Pitt Bike Trips by Day of a Day")
 polygon(d.day, col="blue", border="red")
 ##' According to the "Pitt Bike Trips by Day of a Month" plot, we will not take acount of "Day" element, instead,
 ##' we will calculate weekdays and weekends from Month and Day, and take weekdays and weekends as variables. 
@@ -234,7 +234,7 @@ head(final_total.2)
 ##' Because the StartHour and StopHour of every trip between training and testing set
 ##'  cannot be exactly the same, so I delete these two column, but I will use "Hour" attribute 
 ##'  as an important factor to decide what time (A time period in a day) is the best period 
-##'  to retransfer the bikes, just as "# density plot based on StartHour" showed.
+##'  to retransfer the bikes, just as "density plot based on StartHour" showed.
 
 # final_total.2$y <- as.factor(final_total.2$y)
 
