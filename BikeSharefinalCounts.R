@@ -73,7 +73,7 @@ polygon(d.hour, col="blue", border="red")
 
 # density plot based on StartDay
 d.day <- density(rental_total$StartDay)
-plot(d.day, main="Pitt Bike Trips by Day of a Month")
+plot(d.day, main="Pitt Bike Trips by Day of a Day")
 polygon(d.day, col="blue", border="red")
 ##' According to the "Pitt Bike Trips by Day of a Month" plot, we will not take acount of "Day" element, instead,
 ##' we will calculate weekdays and weekends from Month and Day, and take weekdays and weekends as variables. 
@@ -234,7 +234,7 @@ head(final_total.2)
 ##' Because the StartHour and StopHour of every trip between training and testing set
 ##'  cannot be exactly the same, so I delete these two column, but I will use "Hour" attribute 
 ##'  as an important factor to decide what time (A time period in a day) is the best period 
-##'  to retransfer the bikes, just as "# density plot based on StartHour" showed.
+##'  to retransfer the bikes, just as "density plot based on StartHour" showed.
 
 # final_total.2$y <- as.factor(final_total.2$y)
 
@@ -254,311 +254,7 @@ for (i in 1:6)
   testing.scale[,i] = (testing[,i]-min(testing[,i]))/(max(testing[,i])-min(testing[,i]))
 testing.scale[1:3,]
 
-#' ------------------------------------------------
-#'             Training Models
-#' ------------------------------------------------
-library(MASS) # for the example dataset
-library(plyr) # for recoding data
-library(ROCR) # for plotting roc
-library(e1071) # for NB and SVM
-library(rpart) # for decision tree
-library(ada) # for adaboost
-library(class) # for knn
 
-set.seed(12345) 
-do.classification <- function(train.set, test.set, 
-                              cl.name, verbose=F) {
-  ## note: to plot ROC later, we want the raw probabilities,
-  ## not binary decisions
-  switch(cl.name,
-         knn1 = { # here we test k=1; you should evaluate different k's
-           prob = knn(train.set[,-1], test.set[,-1], cl=train.set[,1], k = 1, prob=T)
-           attr(prob,"prob")[prob==0] = 1-attr(prob,"prob")[prob==0] #modified
-           prob = attr(prob,"prob")
-           prob
-         },
-         knn3 = { # here we test k=3; you should evaluate different k's
-           prob = knn(train.set[,-1], test.set[,-1], cl=train.set[,1], k = 3, prob=T)
-           attr(prob,"prob")[prob==0] = 1-attr(prob,"prob")[prob==0] #modified
-           prob = attr(prob,"prob")
-           prob
-         },
-         knn5 = { # here we test k=5; you should evaluate different k's
-           prob = knn(train.set[,-1], test.set[,-1], cl=train.set[,1], k = 5, prob=T)
-           attr(prob,"prob")[prob==0] = 1-attr(prob,"prob")[prob==0] #modified
-           prob = attr(prob,"prob")
-           prob
-         },
-         knn10 = { # here we test k=5; you should evaluate different k's
-           prob = knn(train.set[,-1], test.set[,-1], cl=train.set[,1], k = 10, prob=T)
-           attr(prob,"prob")[prob==0] = 1-attr(prob,"prob")[prob==0] #modified
-           prob = attr(prob,"prob")
-           prob
-         },
-         lr = { # logistic regression
-           model = glm(y~., family=binomial, data=train.set)
-           if (verbose) {
-             print(summary(model))             
-           }
-           prob = predict(model, newdata=test.set, type="response") 
-           prob
-         },
-         nb = { # naiveBayes
-           model = naiveBayes(y~., data=train.set)
-           prob = predict(model, newdata=test.set, type="raw") 
-           prob = prob[,2]/rowSums(prob) # renormalize the prob.
-           prob
-         },
-         dtree = {
-           model = rpart(y~., data=train.set)
-           if (verbose) {
-             print(summary(model)) # detailed summary of splits
-             printcp(model) # print the cross-validation results
-             #plotcp(model) # visualize the cross-validation results
-             ## plot the tree
-             plot(model, uniform=TRUE, main="Classification Tree")
-             text(model, use.n=TRUE, all=TRUE, cex=.8)
-           }           
-           prob = predict(model, newdata=test.set)
-           if (0) { # here we use the default tree, 
-             ## you should evaluate different size of tree
-             ## prune the tree 
-             pfit<- prune(model, cp=model$cptable[which.min(model$cptable[,"xerror"]),"CP"])
-             prob = predict(pfit, newdata=test.set)
-             ## plot the pruned tree 
-             plot(pfit, uniform=TRUE,main="Pruned Classification Tree")
-             text(pfit, use.n=TRUE, all=TRUE, cex=.8)             
-           }
-           #print(cbind(prob,as.character(test.set$y)))
-           
-           prob = prob[,2]/rowSums(prob) # renormalize the prob.
-           prob
-         },
-         dtreeprune = {
-           model = rpart(y~., data=train.set)
-           if (verbose) {
-             print(summary(model)) # detailed summary of splits
-             printcp(model) # print the cross-validation results
-             plotcp(model) # visualize the cross-validation results
-             ## plot the tree
-             plot(model, uniform=TRUE, main="Classification Tree")
-             text(model, use.n=TRUE, all=TRUE, cex=.8)
-           }           
-           prob = predict(model, newdata=test.set)
-           
-           if (1) { # here we prune the tree
-             ## prune the tree 
-             pfit<- prune(model, cp=model$cptable[which.min(model$cptable[,"xerror"]),"CP"])
-             prob = predict(pfit, newdata=test.set)
-             ## plot the pruned tree 
-             plot(pfit, uniform=TRUE,main="Pruned Classification Tree")
-             text(pfit, use.n=TRUE, all=TRUE, cex=.8)             
-           }
-           #print(cbind(prob,as.character(test.set$y)))
-           prob = prob[,2]/rowSums(prob) # renormalize the prob.
-           prob
-         },
-         svm = {
-           model = svm(y~., data=train.set, probability=T)
-           if (0) { # fine-tune the model with different kernel and parameters
-             ## evaluate the range of gamma parameter between 0.000001 and 0.1
-             ## and cost parameter from 0.1 until 10
-             tuned <- tune.svm(y~., data = train.set, 
-                               kernel="radial", 
-                               gamma = 10^(-6:-1), cost = 10^(-1:1))
-             #print(summary(tuned))
-             gamma = tuned[['best.parameters']]$gamma
-             cost = tuned[['best.parameters']]$cost
-             model = svm(y~., data = train.set, probability=T, 
-                         kernel="radial", gamma=gamma, cost=cost)                        
-           }
-           prob = predict(model, newdata=test.set, probability=T)
-           #print(prob)
-           prob = attr(prob,"probabilities")
-           #print(cbind(prob,as.character(test.set$y)))
-           #print(dim(prob))
-           prob = prob[,which(colnames(prob)==1)]/rowSums(prob)
-           prob
-         },
-         svm1 = {
-           model = svm(y~., data=train.set, probability=T)
-           if (1) { # kernel = radial here we use parameters
-             ## evaluate the range of gamma parameter between 0.000001 and 0.1
-             ## and cost parameter from 0.1 until 10
-             tuned <- tune.svm(y~., data = train.set, 
-                               kernel="radial", 
-                               gamma = 10^(-6:-1), cost = 10^(-1:1))
-             #print(summary(tuned))
-             gamma = tuned[['best.parameters']]$gamma
-             cost = tuned[['best.parameters']]$cost
-             model = svm(y~., data = train.set, probability=T, 
-                         kernel="radial", gamma=gamma, cost=cost)                        
-           }
-           prob = predict(model, newdata=test.set, probability=T)
-           prob = attr(prob,"probabilities")
-           #print(cbind(prob,as.character(test.set$y)))
-           #print(dim(prob))
-           prob = prob[,which(colnames(prob)==1)]/rowSums(prob)
-           prob
-         },
-         svm2 = {
-           model = svm(y~., data=train.set, probability=T)
-           if (1) { # kernel = sigmoid   here we use parameters
-             ## evaluate the range of gamma parameter between 0.000001 and 0.1
-             ## and cost parameter from 0.1 until 10
-             tuned <- tune.svm(y~., data = train.set, 
-                               kernel="sigmoid", 
-                               gamma = 10^(-6:-1), cost = 10^(-1:1))
-             #print(summary(tuned))
-             gamma = tuned[['best.parameters']]$gamma
-             cost = tuned[['best.parameters']]$cost
-             model = svm(y~., data = train.set, probability=T, 
-                         kernel="radial", gamma=gamma, cost=cost)                        
-           }
-           prob = predict(model, newdata=test.set, probability=T)
-           prob = attr(prob,"probabilities")
-           #print(cbind(prob,as.character(test.set$y)))
-           #print(dim(prob))
-           prob = prob[,which(colnames(prob)==1)]/rowSums(prob)
-           prob
-         },
-         svm3 = {
-           model = svm(y~., data=train.set, probability=T)
-           if (1) {    #kernel = polynomial   here we use parameters
-             ## evaluate the range of gamma parameter between 0.000001 and 0.1
-             ## and cost parameter from 0.1 until 10
-             tuned <- tune.svm(y~., data = train.set, 
-                               kernel="polynomial", 
-                               gamma = 10^(-6:-1), cost = 10^(-1:1))
-             #print(summary(tuned))
-             gamma = tuned[['best.parameters']]$gamma
-             cost = tuned[['best.parameters']]$cost
-             model = svm(y~., data = train.set, probability=T, 
-                         kernel="radial", gamma=gamma, cost=cost)                        
-           }
-           prob = predict(model, newdata=test.set, probability=T)
-           prob = attr(prob,"probabilities")
-           #print(cbind(prob,as.character(test.set$y)))
-           #print(dim(prob))
-           prob = prob[,which(colnames(prob)==1)]/rowSums(prob)
-           prob
-         }, 
-         ada = {
-           model = ada(y~., data = train.set)
-           prob = predict(model, newdata=test.set, type='probs')
-           #print(cbind(prob,as.character(test.set$y)))
-           prob = prob[,2]/rowSums(prob)
-           prob
-         }
-  ) 
-}
-
-pre.test <- function(train.set, test.set, cl.name, r=0.6, prob.cutoff=0.5) {
-  cat('pre-test',cl.name,':',
-      '#training:',nrow(train.set),
-      '#testing',nrow(test.set),'\n')
-  prob = do.classification(train.set, test.set, cl.name)
-  
-  predicted = as.numeric(prob > prob.cutoff)
-  actual = test.set$y
-  confusion.matrix = table(actual,factor(predicted,levels=c(0,1)))
-  error = (confusion.matrix[1,2]+confusion.matrix[2,1]) / nrow(test.set)  
-  cat('error rate:',error,'\n')
-}
-
-my.classifier <- function(train.set, test.set, cl.name, do.cv, get.performance=F) {
-  if (do.cv) k.fold.cv(train.set, test.set, cl.name, get.performance=get.performance)
-}
-
-k.fold.cv <- function(train.set, test.set, cl.name, k.fold=10, prob.cutoff=0.5, get.performance=F) {
-  errors = dim(k.fold)
-  precisions = dim(k.fold)
-  recalls = dim(k.fold)
-  fscores = dim(k.fold)
-  accuracies = dim(k.fold)
-  probs = NULL
-  actuals = NULL
-  train.set = train.set
-  test.set = test.set
-  cat(k.fold,'-fold CV run',cl.name,':',
-      '#training:',nrow(train.set),
-      '#testing',nrow(test.set),'\n')
-  prob = do.classification(train.set, test.set, cl.name)
-  predicted = as.numeric(prob > prob.cutoff)
-  actual = test.set$y
-  confusion.matrix = table(actual,factor(predicted,levels=c(0,1)))
-  confusion.matrix
-  error = (confusion.matrix[1,2]+confusion.matrix[2,1]) / nrow(test.set)  
-  #    errors[k] = error
-  cat('\t\terror=',error,'\n')
-  precision = (confusion.matrix[1,1]/(confusion.matrix[1,1]+confusion.matrix[2,1]))
-  #    precisions[k] = precision
-  print(confusion.matrix)
-  recall =(confusion.matrix[1,1]/(confusion.matrix[1,1]+confusion.matrix[1,2]))
-  #    recalls[k] = recall
-  fscore = 2*precision*recall/(precision+recall)
-  #    fscores[k] = fscore
-  probs = c(probs,prob)
-  actuals = c(actuals,actual)
-  ## you may compute other measures and store them in arrays
-  #  }
-  avg.error = error
-  cat('avg error=',avg.error,'\n')
-  avg.accuracy = 1 - avg.error
-  cat('avg Accuracy=',avg.accuracy,'\n')
-  avg.precision = precision
-  cat('avg Precision=',avg.precision,'\n')
-  avg.recall = recall
-  cat('avg recall=',avg.recall,'\n')
-  avg.fscore = fscore
-  cat('avg fscore=',avg.fscore,'\n')
-}
-
-results <- cbind(my.classifier(training.scale,testing.scale, cl.name='lr',do.cv=T),
-                 my.classifier(training.scale,testing.scale, cl.name='knn1',do.cv=T),
-                 my.classifier(training,testing, cl.name='knn5',do.cv=T),
-                 my.classifier(training,testing, cl.name='knn10',do.cv=T),
-                 my.classifier(training,testing, cl.name='nb',do.cv=T)
-                 #my.classifier(training.scale,testing.scale, cl.name='dtree',do.cv=T),
-                 #my.classifier(training,testing, cl.name='dtreeprune',do.cv=T),
-                 #my.classifier(training.scale,testing.scale, cl.name='svm1',do.cv=T),
-                 #my.classifier(training,testing, cl.name='svm2',do.cv=T),
-                 #my.classifier(training,testing, cl.name='ada',do.cv=T)
-)
-
-colnames(results) <- c("Logistic","KNN1","KNN5","KNN10","Naive Bayes")
-results
-
-# Create bar charts
-colours <- c("red", "orange", "yellow", "green", "blue")
-
-fs <- as.matrix(results[5,])
-auc <- as.matrix(results[6,])
-
-barplot(fs,main="Bar Chart for F-score",
-        names.arg=c("Logistic","KNN1","KNN5","KNN10","Naive Bayes"),
-        cex.lab = 1.5, cex.main = 1.4,cex.names=0.6,
-        beside=TRUE, col=colours)
-
-
-barplot(auc,main="Bar Chart for AUC",
-        names.arg=c("Logistic","KNN1","KNN5","KNN10","Naive Bayes"),
-        cex.lab = 1.5, cex.main = 1.4,cex.names=0.6,
-        beside=TRUE, col=colours)
-
-
-#' --------------------------------------------------------
-#'              Create randomForest model
-#' --------------------------------------------------------
-library(randomForest)
-library(plyr)
-rf <- randomForest(training$y ~ ., data = training, ntree = 100, importance = TRUE)
-rf.scale <- randomForest(training.knn$y ~., data = training.knn, ntree = 100, importance = TRUE)
-#summary(rf)
-#plot(importance(rf))
-pred.rf <- predict(rf, testing)
-pred.rf.scale <- predict(rf.scale, testing.knn)
-head(pred.rf)
 #' --------------------------------------------------------
 #'                   ridge regression
 #' --------------------------------------------------------
@@ -568,29 +264,31 @@ library(MASS)
 library(glmnet)
 
 fit1 <- lm.ridge(y ~ ., data = training, lambda = 0.1)
-new.df <- data.frame(training)
-predict(fit1, new.df)
+new.df <- data.frame(testing)
+result <- as.matrix(new.df) %*% coef(fit1)
+library(base)
+result <- round(result)
 
 library(Metrics)
-mapk <- function (k, actual, predicted)
-{
-  if( length(actual)==0 || length(predicted)==0 ) 
-  {
-    return(0.0)
-  }
-  
-  scores <- rep(0, length(actual))
-  for (i in 1:length(scores))
-  {
-    scores[i] <- apk(k, actual[[i]], predicted[[i]])
-  }
-  score <- mean(scores)
-  score
-}
+
 actual <- testing$y
-mapk(55554,actual, predicted)
+
+size <- length(actual)
+true_count = 0
+for (i in 1:size)
+{
+  if(isTRUE(((result[i] >= actual[i]-2) && (result[i]<= actual[i]+2))))
+  {
+    true_count = true_count + 1
+  }
+}
+accuracy <- true_count/size
+accuracy ## 0.7410808
+
 
 #' --------------------------------------------------------
-#'                   logistic regression
+#'                   polynormial regression
 #' --------------------------------------------------------
+
+
 
